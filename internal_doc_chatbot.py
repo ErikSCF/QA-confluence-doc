@@ -1,10 +1,11 @@
 import os
-from atlassian import Confluence # See https://atlassian-python-api.readthedocs.io/index.html
+from atlassian import Confluence # See from atlassian import Confluence # See https://atlassian-python-api.readthedocs.io/index.html
 import nltk
 from transformers import GPT2TokenizerFast
 tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 import openai
 import numpy as np
+import pandas as pd
 
 # See the companion Medium article https://medium.com/@francois.ascani/running-chatgpt-on-your-internal-confluence-documentation-d7761aa8fc68
 # for a detailed description of the code
@@ -13,7 +14,7 @@ import numpy as np
 openai.api_key = os.environ["openai-api-key"]
 
 def get_url():
-    return 'https://my-url.atlassian.net'
+    return 'https://clearfunction.atlassian.net/'
 
 def connect_to_Confluence():
     '''
@@ -28,25 +29,27 @@ def connect_to_Confluence():
     '''
     
     url = get_url()
-    username = os.environ["jira-username"]
-    password = os.environ["jira-api-token"]
-    
+    jira_username = os.environ["jira-username"]
+    jira_api_token = os.environ["jira-api-token"]
+
+    print('username: ', jira_username)
+
     confluence = Confluence(
         url=url,
-        username=username,
-        password=password,
+        username=jira_username,
+        password=jira_api_token,
         cloud=True)
-    
+
     return confluence
   
-def get_all_pages(confluence, space='MY-SPACE'):
+def get_all_pages(confluence, space='~650626701'):
     '''
-    Get all the pages within the MY-SPACE space.
+    Get all the pages within the ~650626701 space.
     
     Parameters
     ----------
     confluence: a connector to Confluence
-    space: Space of the Confluence (i.e. 'MY-SPACE')
+    space: Space of the Confluence (i.e. '~650626701')
     
     Return
     ------
@@ -120,7 +123,7 @@ def collect_title_body_embeddings(pages, save_csv=True):
     collect = []
     for page in pages:
         title = page['title']
-        link = get_url() + '/wiki/spaces/MY-SPACE/pages/' + page['id']
+        link = get_url() + '/wiki/spaces/~650626701/pages/' + page['id']
         htmlbody = page['body']['storage']['value']
         htmlParse = BeautifulSoup(htmlbody, 'html.parser')
         body = []
@@ -155,7 +158,7 @@ def update_internal_doc_embeddings():
     # Connect to Confluence
     confluence = connect_to_Confluence()
     # Get page contents
-    pages = get_all_pages(confluence, space='MY-SPACE')
+    pages = get_all_pages(confluence, space='~650626701')
     # Extract title, body and number of tokens
     DOC_title_content_embeddings= collect_title_body_embeddings(pages, save_csv=True)
     return DOC_title_content_embeddings
@@ -204,7 +207,7 @@ def construct_prompt(query, doc_embeddings):
     
     return (prompt,  chosen_sections_links)
   
-  def internal_doc_chatbot_answer(query, DOC_title_content_embeddings):
+def internal_doc_chatbot_answer(query, DOC_title_content_embeddings):
     
     # Order docs by similarity of the embeddings with the query
     DOC_title_content_embeddings = order_document_sections_by_query_similarity(query, DOC_title_content_embeddings)
@@ -226,4 +229,6 @@ def construct_prompt(query, doc_embeddings):
     output = response["choices"][0]["text"].strip(" \n")
     
     return output, links
-  
+
+if __name__ == '__main__':
+  update_internal_doc_embeddings()

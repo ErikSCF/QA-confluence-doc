@@ -4,6 +4,7 @@ import datetime
 import internal_doc_chatbot
 import pandas as pd
 
+path_root = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=os.path.join(path_root, 'internal-doc-chatbot'))
            
 @app.route('/', methods=['GET', 'POST'])
